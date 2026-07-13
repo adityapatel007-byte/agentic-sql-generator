@@ -1,9 +1,12 @@
-"""Connection registry — holds live DB adapters keyed by connection_id.
+"""Connection registry — holds live DB adapters + schema indexes.
 
 The API layer registers a connection once (upload SQLite / paste Postgres URL),
 then the agent tools look it up by id on every call. Keeping this centralized
 means the agent never sees credentials and cannot be tricked into targeting
 a database it wasn't given.
+
+Registering a connection also builds its SchemaIndex so the agent can call
+retrieve_tables() before generating SQL.
 """
 from __future__ import annotations
 
@@ -15,6 +18,8 @@ from typing import Literal
 from app.db.base import DBAdapter
 from app.db.postgres import PostgresAdapter
 from app.db.sqlite import SQLiteAdapter
+from app.rag.embedder import Embedder, SentenceTransformerEmbedder
+from app.rag.schema_index import SchemaIndex
 
 
 SourceKind = Literal["sqlite", "postgres"]
@@ -47,6 +52,7 @@ def build_adapter(config: ConnectionConfig, connection_id: str | None = None) ->
 class _Entry:
     adapter: DBAdapter
     config: ConnectionConfig
+    schema_index: SchemaIndex
 
 
 @dataclass
@@ -57,14 +63,30 @@ class ConnectionRegistry:
     process is the single writer.
     """
 
+    embedder: Embedder | None = None
     _entries: dict[str, _Entry] = field(default_factory=dict)
     _lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
+    def _get_embedder(self) -> Embedder:
+        # Lazy default so imports stay cheap. Tests inject a FakeEmbedder.
+        if self.embedder is None:
+            self.embedder = SentenceTransformerEmbedder()
+        return self.embedder
+
     async def register(self, config: ConnectionConfig) -> str:
-        """Build the adapter, store it, return its connection_id."""
+        """Build the adapter, index its schema, return its connection_id."""
         adapter = build_adapter(config)
+        index = SchemaIndex(
+            connection_id=adapter.connection_id,
+            embedder=self._get_embedder(),
+        )
+        await index.index_schema(adapter)
         async with self._lock:
-            self._entries[adapter.connection_id] = _Entry(adapter=adapter, config=config)
+            self._entries[adapter.connection_id] = _Entry(
+                adapter=adapter,
+                config=config,
+                schema_index=index,
+            )
         return adapter.connection_id
 
     def get(self, connection_id: str) -> DBAdapter:
@@ -72,6 +94,12 @@ class ConnectionRegistry:
         if entry is None:
             raise KeyError(f"Unknown connection_id: {connection_id}")
         return entry.adapter
+
+    def get_index(self, connection_id: str) -> SchemaIndex:
+        entry = self._entries.get(connection_id)
+        if entry is None:
+            raise KeyError(f"Unknown connection_id: {connection_id}")
+        return entry.schema_index
 
     def describe(self, connection_id: str) -> ConnectionConfig:
         entry = self._entries.get(connection_id)
@@ -108,7 +136,7 @@ def get_registry() -> ConnectionRegistry:
     return _registry
 
 
-def reset_registry_for_tests() -> None:
+def reset_registry_for_tests(embedder: Embedder | None = None) -> None:
     """Test hook — never call from application code."""
     global _registry
-    _registry = ConnectionRegistry()
+    _registry = ConnectionRegistry(embedder=embedder)
