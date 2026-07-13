@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+dist/
+.turbo/
+.next/
+.parcel-cache/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Data
+/data/bird/
+/data/chroma/
+/data/uploads/
+/data/sample_dbs/*.sqlite
+/data/sample_dbs/*.db
+!/data/sample_dbs/.gitkeep
+
+# Evals
+/evals/results/
+/evals/data/bird/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+/backend/build/
+/backend/dist/
+/ui/dist/
+/extension/dist/
+/extension/build/
