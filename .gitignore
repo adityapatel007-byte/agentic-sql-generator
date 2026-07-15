@@ -23,13 +23,15 @@ dist/
 .env.*.local
 !.env.example
 
-# Data
+# Data (runtime — patterns with a mid-slash are anchored to repo root, so
+# list both the root and backend locations explicitly)
 /data/bird/
 /data/chroma/
 /data/uploads/
 /data/sample_dbs/*.sqlite
 /data/sample_dbs/*.db
 !/data/sample_dbs/.gitkeep
+/backend/data/
 
 # Evals
 /evals/results/
