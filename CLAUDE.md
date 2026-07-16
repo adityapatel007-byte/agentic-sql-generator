@@ -36,8 +36,8 @@ Do not re-open these decisions unless a new hard constraint appears — they wer
 - [x] **v1 step 3** — Schema RAG (Chroma + bge-small-en-v1.5, per-connection isolation)
 - [x] **v1 step 4** — Agentic loop with the 4 tools above (Nemotron provider + AgentTools + AgentLoop, generate-execute-observe-correct, max 5 iterations)
 - [x] **v1 step 5** — FastAPI backend with SSE streaming endpoint (connections + ask, AgentLoop.astream, typed events, TestClient coverage)
-- [ ] **v1 step 6** — React + Vite + Tailwind UI (NEXT UP)
-- [ ] **v1 step 7** — Eval suite (BIRD-SQL subset + custom tests)
+- [x] **v1 step 6** — React + Vite + Tailwind UI (Vite 8 + React 19 + Tailwind v4 + shadcn/ui Nova preset; Connections + Ask screens; POST-friendly SSE reader via fetch + ReadableStream; live agent trace + results table)
+- [ ] **v1 step 7** — Eval suite (BIRD-SQL subset + custom tests) (NEXT UP)
 - [ ] **v1 step 8** — Dockerize + deploy
 - [ ] **v2** — Chrome extension
 - [ ] **v3** — Multi-model benchmark
@@ -46,6 +46,7 @@ Do not re-open these decisions unless a new hard constraint appears — they wer
 ## Current test status
 
 Last verified 2026-07-15 (Python 3.12): **104 passed, 4 skipped, 1 slow deselected**.
+UI end-to-end verified 2026-07-16: connections list, SQLite upload, `POST /ask` SSE stream, trace panel, and results table all working against the real Nemotron endpoint (4-iteration run producing correct SQL).
 
 - 4 skipped are live-Postgres tests. Enable by exporting `TEST_POSTGRES_URL` to a running Postgres and running `pytest tests/test_postgres.py`.
 - Real bge-small-en-v1.5 e2e is marked `@pytest.mark.slow`. Opt in with `pytest -m slow`. First run downloads the model (~130 MB).
@@ -113,10 +114,15 @@ backend/
 
 ## Immediate next step
 
-**v1 step 6 — React + Vite + Tailwind UI.** Frontend that talks to the FastAPI backend from step 5:
-- Vite + React + TS + Tailwind scaffold under `ui/`.
-- Screens: (1) connect-a-database (SQLite upload / Postgres form), (2) ask-a-question with live trace panel that consumes the SSE stream via `EventSource` and renders `iteration / assistant / tool_call / tool_result / final` events, (3) results table for `final_columns` / `final_rows`.
-- Not Streamlit. Aim for a sleek, non-AI-demo look.
-- Point at `http://localhost:8000` by default; make it configurable.
+**v1 step 7 — Eval suite.** Add a BIRD-SQL subset eval + custom tests that exercise the whole loop (generate → execute → self-correct). Run against Nemotron Nano to establish the v1 baseline number that v3/v4 will beat.
+
+## UI conventions (added in step 6)
+
+- `ui/src/lib/config.ts` — `API_BASE` from `VITE_API_BASE`, defaulting to `http://localhost:8000`. **The backend CORS allowlist is `http://localhost:5173` — always browse the UI at `localhost`, not `127.0.0.1`, or the fetches CORS-fail.**
+- `ui/src/lib/events.ts` — TypeScript mirror of `backend/app/models/events.py`. Change both together.
+- `ui/src/lib/sse.ts` — POST-friendly SSE reader via `fetch` + `ReadableStream` (native `EventSource` is GET-only). Async generator yielding typed `StreamEvent`.
+- `ui/src/components/{ConnectionsScreen,AskScreen,TracePanel,ResultsTable}.tsx` — screens and streaming widgets.
+- shadcn/ui Nova preset (Geist font, neutral base color). System dark mode via `.dark` class toggle in App.tsx.
+- Sample SQLite for demos: `data/sample_dbs/ecommerce.sqlite` (created via one-liner; gitignored, so re-create if missing).
 
 Also worth doing whenever: set `NVIDIA_API_KEY` in `backend/.env` so `scripts/smoke_nemotron.py` can exercise the real endpoint end-to-end.
