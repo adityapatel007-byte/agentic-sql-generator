@@ -37,6 +37,7 @@ Do not re-open these decisions unless a new hard constraint appears — they wer
 - [x] **v1 step 4** — Agentic loop with the 4 tools above (Nemotron provider + AgentTools + AgentLoop, generate-execute-observe-correct, max 5 iterations)
 - [x] **v1 step 5** — FastAPI backend with SSE streaming endpoint (connections + ask, AgentLoop.astream, typed events, TestClient coverage)
 - [x] **v1 step 6** — React + Vite + Tailwind UI (Vite 8 + React 19 + Tailwind v4 + shadcn/ui Nova preset; Connections + Ask screens; POST-friendly SSE reader via fetch + ReadableStream; live agent trace + results table)
+- [x] **v1 step 6.1** — Terminal-native redesign via impeccable skill. Mono-first (Geist Mono), one committed accent (crushed magenta OKLCH 0.68 0.20 355), sharp 2-8px radii, hairline borders, near-black bg, ambient grid backdrop. Prompt bar with `$` glyph and cursor blink, log-style trace (relative timestamps, `→` tool call / `←` result), terminal-table results, bottom status bar with keyboard hints. Full keyboard reach (/, esc, n). See [PRODUCT.md](PRODUCT.md) for principles.
 - [ ] **v1 step 7** — Eval suite (BIRD-SQL subset + custom tests) (NEXT UP)
 - [ ] **v1 step 8** — Dockerize + deploy
 - [ ] **v2** — Chrome extension
@@ -116,13 +117,14 @@ backend/
 
 **v1 step 7 — Eval suite.** Add a BIRD-SQL subset eval + custom tests that exercise the whole loop (generate → execute → self-correct). Run against Nemotron Nano to establish the v1 baseline number that v3/v4 will beat.
 
-## UI conventions (added in step 6)
+## UI conventions (added in step 6, refined in 6.1)
 
 - `ui/src/lib/config.ts` — `API_BASE` from `VITE_API_BASE`, defaulting to `http://localhost:8000`. **The backend CORS allowlist is `http://localhost:5173` — always browse the UI at `localhost`, not `127.0.0.1`, or the fetches CORS-fail.**
 - `ui/src/lib/events.ts` — TypeScript mirror of `backend/app/models/events.py`. Change both together.
 - `ui/src/lib/sse.ts` — POST-friendly SSE reader via `fetch` + `ReadableStream` (native `EventSource` is GET-only). Async generator yielding typed `StreamEvent`.
-- `ui/src/components/{ConnectionsScreen,AskScreen,TracePanel,ResultsTable}.tsx` — screens and streaming widgets.
-- shadcn/ui Nova preset (Geist font, neutral base color). System dark mode via `.dark` class toggle in App.tsx.
+- `ui/src/lib/shortcuts.ts` — `useShortcut(key, handler)`; skips events targeted at editable elements (unless the key is `Escape`).
+- `ui/src/components/{App,StatusBar,ConnectionsScreen,AskScreen,TracePanel,ResultsTable}.tsx` — screens, terminal shell, streaming widgets.
+- Design system: terminal-native, mono-first. Tokens defined in `ui/src/index.css` as OKLCH CSS variables (`--bg`, `--ink`, `--accent` = crushed magenta at 0.68 0.20 355 dark / 0.50 0.22 355 light, plus `--ok`, `--warn`, `--err`). shadcn's `--color-*` are remapped onto our tokens; new components should read `var(--bg)` / `var(--ink)` etc directly. Radius scale caps at 8px. Full principles in [PRODUCT.md](PRODUCT.md).
 - Sample SQLite for demos: `data/sample_dbs/ecommerce.sqlite` (created via one-liner; gitignored, so re-create if missing).
 
 Also worth doing whenever: set `NVIDIA_API_KEY` in `backend/.env` so `scripts/smoke_nemotron.py` can exercise the real endpoint end-to-end.
