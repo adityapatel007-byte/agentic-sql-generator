@@ -33,9 +33,11 @@ dist/
 !/data/sample_dbs/.gitkeep
 /backend/data/
 
-# Evals
+# Evals — runtime output and fetched BIRD assets
 /evals/results/
 /evals/data/bird/
+/backend/eval/results/
+/backend/eval/bird_data/
 
 # IDE / OS
 .vscode/

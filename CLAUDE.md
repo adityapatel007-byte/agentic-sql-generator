@@ -38,16 +38,17 @@ Do not re-open these decisions unless a new hard constraint appears — they wer
 - [x] **v1 step 5** — FastAPI backend with SSE streaming endpoint (connections + ask, AgentLoop.astream, typed events, TestClient coverage)
 - [x] **v1 step 6** — React + Vite + Tailwind UI (Vite 8 + React 19 + Tailwind v4 + shadcn/ui Nova preset; Connections + Ask screens; POST-friendly SSE reader via fetch + ReadableStream; live agent trace + results table)
 - [x] **v1 step 6.1** — Terminal-native redesign via impeccable skill. Mono-first (Geist Mono), one committed accent (crushed magenta OKLCH 0.68 0.20 355), sharp 2-8px radii, hairline borders, near-black bg, ambient grid backdrop. Prompt bar with `$` glyph and cursor blink, log-style trace (relative timestamps, `→` tool call / `←` result), terminal-table results, bottom status bar with keyboard hints. Full keyboard reach (/, esc, n). See [PRODUCT.md](PRODUCT.md) for principles.
-- [ ] **v1 step 7** — Eval suite (BIRD-SQL subset + custom tests) (NEXT UP)
-- [ ] **v1 step 8** — Dockerize + deploy
+- [x] **v1 step 7** — Eval suite. `backend/eval/` package with EvalItem/EvalOutcome dataclasses, BIRD-style execution accuracy (unordered multiset, order-sensitive when gold has ORDER BY, float rounding to 4dp), agentic runner with per-DB registration caching, CLI (`python -m eval.cli --set custom|bird [--limit N]`). 12 hand-crafted items on `ecommerce.sqlite` spanning easy/medium/hard, including a text-date filter and a country-revenue join. BIRD subset fetched on demand via `scripts/fetch_bird_subset.py` (samples 3 dev DBs × ~15 Q). 20 new fast tests using ScriptedProvider. **v1 baseline (custom, 2026-07-25): 12/12 correct (100%), avg 3.42 iterations, Nemotron Nano.**
+- [ ] **v1 step 8** — Dockerize + deploy (NEXT UP)
 - [ ] **v2** — Chrome extension
 - [ ] **v3** — Multi-model benchmark
 - [ ] **v4** — Nemotron LoRA fine-tune on BIRD-SQL
 
 ## Current test status
 
-Last verified 2026-07-15 (Python 3.12): **104 passed, 4 skipped, 1 slow deselected**.
+Last verified 2026-07-25 (Python 3.12): **124 passed, 4 skipped, 1 slow deselected**.
 UI end-to-end verified 2026-07-16: connections list, SQLite upload, `POST /ask` SSE stream, trace panel, and results table all working against the real Nemotron endpoint (4-iteration run producing correct SQL).
+Eval baseline (custom set, 2026-07-25, Nemotron Nano): **12/12 correct, avg 3.42 iterations**. custom-11 hit the 5-iteration cap without triggering self-correction — first canary for regressions.
 
 - 4 skipped are live-Postgres tests. Enable by exporting `TEST_POSTGRES_URL` to a running Postgres and running `pytest tests/test_postgres.py`.
 - Real bge-small-en-v1.5 e2e is marked `@pytest.mark.slow`. Opt in with `pytest -m slow`. First run downloads the model (~130 MB).
@@ -111,11 +112,23 @@ backend/
     test_safety.py, test_sqlite_adapter.py, test_postgres.py, test_registry.py, test_rag.py
     test_agent_tools.py, test_agent_loop.py   # step-4 coverage; loop tests use ScriptedProvider
     test_api_connections.py, test_api_ask.py  # step-5 FastAPI + SSE; provider overridden via Depends
+    test_eval_runner.py       # step-7 runner + metrics coverage, uses ScriptedProvider
+  eval/
+    datasets.py               # EvalItem + load_custom / load_bird
+    metrics.py                # execution_accuracy (order-sensitive iff gold has ORDER BY, float rounding)
+    runner.py                 # run_items (per-DB registration cache) + summarize
+    cli.py                    # python -m eval.cli --set custom|bird [--limit N] [--out ...]
+    custom_items.json         # 12 hand-crafted NL/gold-SQL pairs on ecommerce.sqlite
+    results/                  # gitignored; per-run JSON dumps ({summary, outcomes})
+    bird_data/                # gitignored; dev.zip + extracted DBs + subset.json (from fetch script)
+  scripts/
+    smoke_nemotron.py         # single-question smoke against real NVIDIA endpoint
+    fetch_bird_subset.py      # streams BIRD dev.zip, samples 3 dbs × N questions, writes subset.json
 ```
 
 ## Immediate next step
 
-**v1 step 7 — Eval suite.** Add a BIRD-SQL subset eval + custom tests that exercise the whole loop (generate → execute → self-correct). Run against Nemotron Nano to establish the v1 baseline number that v3/v4 will beat.
+**v1 step 8 — Dockerize + deploy.** Package the backend + UI into containers, wire GitHub Actions CI (lint + fast tests), and deploy to Railway or Fly.io. Keep the eval suite runnable in CI as a manual workflow (opt-in, so PRs don't burn NVIDIA credits).
 
 ## UI conventions (added in step 6, refined in 6.1)
 

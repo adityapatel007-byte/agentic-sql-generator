@@ -1,0 +1,87 @@
+[
+  {
+    "id": "custom-01",
+    "difficulty": "easy",
+    "question": "How many customers are in the database?",
+    "gold_sql": "SELECT COUNT(*) FROM customers",
+    "tags": ["count", "single-table"]
+  },
+  {
+    "id": "custom-02",
+    "difficulty": "easy",
+    "question": "List every customer's name, ordered by id.",
+    "gold_sql": "SELECT name FROM customers ORDER BY id",
+    "tags": ["order", "single-table"]
+  },
+  {
+    "id": "custom-03",
+    "difficulty": "easy",
+    "question": "How many orders have been placed in total?",
+    "gold_sql": "SELECT COUNT(*) FROM orders",
+    "tags": ["count", "single-table"]
+  },
+  {
+    "id": "custom-04",
+    "difficulty": "easy",
+    "question": "Which customers are from the United States? Return their names.",
+    "gold_sql": "SELECT name FROM customers WHERE country = 'US' ORDER BY id",
+    "tags": ["filter", "single-table"]
+  },
+  {
+    "id": "custom-05",
+    "difficulty": "easy",
+    "question": "What was the largest order total ever placed?",
+    "gold_sql": "SELECT MAX(total) FROM orders",
+    "tags": ["aggregate", "single-table"]
+  },
+  {
+    "id": "custom-06",
+    "difficulty": "medium",
+    "question": "What is the total revenue across all orders?",
+    "gold_sql": "SELECT SUM(total) FROM orders",
+    "tags": ["aggregate"]
+  },
+  {
+    "id": "custom-07",
+    "difficulty": "medium",
+    "question": "How many customers are there in each country?",
+    "gold_sql": "SELECT country, COUNT(*) FROM customers GROUP BY country ORDER BY country",
+    "tags": ["group-by", "aggregate"]
+  },
+  {
+    "id": "custom-08",
+    "difficulty": "medium",
+    "question": "For each customer, what is the total amount they have spent? Return name and total, ordered from biggest spender to smallest.",
+    "gold_sql": "SELECT c.name, SUM(o.total) FROM customers c JOIN orders o ON o.customer_id = c.id GROUP BY c.id, c.name ORDER BY SUM(o.total) DESC",
+    "tags": ["join", "group-by", "order"]
+  },
+  {
+    "id": "custom-09",
+    "difficulty": "medium",
+    "question": "Which customer has placed the most orders? Return only their name.",
+    "gold_sql": "SELECT c.name FROM customers c JOIN orders o ON o.customer_id = c.id GROUP BY c.id, c.name ORDER BY COUNT(*) DESC LIMIT 1",
+    "tags": ["join", "group-by", "limit"]
+  },
+  {
+    "id": "custom-10",
+    "difficulty": "hard",
+    "question": "List the ids of every order placed in June 2026.",
+    "gold_sql": "SELECT id FROM orders WHERE substr(created_at, 1, 7) = '2026-06' ORDER BY id",
+    "tags": ["text-date", "self-correction-likely"],
+    "evidence": "created_at is stored as TEXT in ISO 'YYYY-MM-DD' format; SQLite has no native DATE type."
+  },
+  {
+    "id": "custom-11",
+    "difficulty": "hard",
+    "question": "How much revenue did US customers generate in July 2026?",
+    "gold_sql": "SELECT SUM(o.total) FROM orders o JOIN customers c ON c.id = o.customer_id WHERE c.country = 'US' AND substr(o.created_at, 1, 7) = '2026-07'",
+    "tags": ["join", "filter", "text-date", "aggregate"]
+  },
+  {
+    "id": "custom-12",
+    "difficulty": "hard",
+    "question": "Which country's customers generated the most total revenue? Return only the country code.",
+    "gold_sql": "SELECT c.country FROM customers c JOIN orders o ON o.customer_id = c.id GROUP BY c.country ORDER BY SUM(o.total) DESC LIMIT 1",
+    "tags": ["join", "group-by", "order", "limit"]
+  }
+]
